@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0A0A0A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>AK Restaurant — Digital Menu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'eth-gold': '#D4A843',
+                        'eth-gold-light': '#F0D78C',
+                        'eth-green': '#1B4332',
+                        'eth-dark': '#0A0A0A',
+                        'eth-cream': '#F5F0E8',
+                        'eth-coffee': '#3E2723',
+                    },
+                    fontFamily: {
+                        'serif': ['Playfair Display', 'serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                        'amharic': ['Noto Sans Ethiopic', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background: #0A0A0A; color: white; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
+        .pattern-overlay {
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23D4A843' fill-opacity='0.04'%3E%3Cpath d='M20 0L25 5L30 0L35 5L40 0V10L35 15L40 20L35 25L40 30V40L35 35L30 40L25 35L20 40L15 35L10 40L5 35L0 40V30L5 25L0 20L5 15L0 10V0L5 5L10 0L15 5L20 0Z'/%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .cat-pill.active {
+            background: linear-gradient(135deg, #D4A843, #B8932F);
+            color: white;
+            box-shadow: 0 4px 15px rgba(212,168,67,0.4);
+        }
+
+        .menu-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .menu-card:active { transform: scale(0.98); }
+
+        .flame { transition: all 0.2s; }
+        .flame.on { color: #D4A843; filter: drop-shadow(0 0 3px rgba(212,168,67,0.6)); }
+        .flame.off { color: #333; }
+
+        @keyframes pulse-gold {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,67,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(212,168,67,0); }
+        }
+        .btn-pulse { animation: pulse-gold 2s infinite; }
+
+        .slide-panel {
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .slide-panel.open { transform: translateY(0); }
+
+        .qty-btn {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(212,168,67,0.15);
+            color: #D4A843;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .qty-btn:active { background: rgba(212,168,67,0.3); transform: scale(0.9); }
+
+        .nav-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+
+        .img-fade {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .img-fade.loaded { opacity: 1; }
+
+        .section-header {
+            background: linear-gradient(135deg, rgba(212,168,67,0.1), rgba(27,67,50,0.2));
+            border: 1px solid rgba(212,168,67,0.2);
+        }
+
+        .toast {
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .floating-cart {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .floating-cart:active { transform: scale(0.95); }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #D4A843, #F0D78C, #D4A843);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="bg-eth-dark min-h-screen">
+
+    <!-- HEADER -->
+    <header class="relative overflow-hidden">
+        <div class="absolute inset-0">
+            <img src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80" 
+                 alt="AK Restaurant" 
+                 class="w-full h-full object-cover opacity-40"
+                 loading="eager">
+            <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-eth-dark"></div>
+        </div>
+        <div class="pattern-overlay absolute inset-0"></div>
+
+        <div class="relative z-10 px-5 pt-8 pb-6">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full border-2 border-eth-gold flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                        <span class="text-xl font-bold font-serif text-eth-gold">AK</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-wider text-white">RESTAURANT</h1>
+                        <p class="text-[10px] tracking-[0.3em] text-eth-gold uppercase">Addis Ababa</p>
+                    </div>
+                </div>
+                <button onclick="toggleLang()" class="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-xs font-medium text-gray-300 border border-white/10 hover:bg-white/20 transition-all">
+                    <span id="lang-label">🇬🇧 EN</span>
+                </button>
+            </div>
+
+            <div class="text-center">
+                <p class="text-xs tracking-[0.2em] uppercase text-eth-gold mb-2">Scan • Order • Enjoy</p>
+                <h2 class="text-3xl font-serif font-bold text-white mb-2">
+                    <span class="gradient-text">Digital Menu</span>
+                </h2>
+                <p class="text-sm text-gray-400 max-w-xs mx-auto" id="hero-subtitle">
+                    Authentic Ethiopian cuisine served with modern elegance
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <!-- STICKY CATEGORY NAV -->
+    <nav id="cat-nav" class="sticky top-0 z-40 bg-eth-dark/95 backdrop-blur-xl border-b border-white/5 transition-all">
+        <div class="px-4 py-3 flex gap-2 overflow-x-auto hide-scrollbar" id="category-pills"></div>
+    </nav>
+
+    <!-- MENU SECTIONS -->
+    <main id="menu-container" class="px-4 pb-32"></main>
+
+    <!-- FLOATING CART BUTTON -->
+    <div id="floating-cart" class="fixed bottom-6 left-4 right-4 z-40 hidden">
+        <button onclick="openCart()" class="floating-cart w-full py-4 bg-gradient-to-r from-eth-gold to-amber-600 rounded-2xl shadow-2xl shadow-amber-500/20 flex items-center justify-between px-6 text-white">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                </div>
+                <div class="text-left">
+                    <p class="text-sm font-semibold" id="cart-count">0 items</p>
+                    <p class="text-xs text-white/70" id="cart-total">0 ETB</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-bold">View Order</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+        </button>
+    </div>
+
+    <!-- ITEM DETAIL SLIDE-UP PANEL -->
+    <div id="item-panel" class="slide-panel fixed inset-0 z-50 flex items-end">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeItemPanel()"></div>
+        <div class="relative w-full bg-eth-dark rounded-t-3xl overflow-hidden max-h-[85vh] overflow-y-auto">
+            <div class="sticky top-0 z-10 bg-eth-dark/95 backdrop-blur-sm px-5 pt-4 pb-2 flex items-center justify-between border-b border-white/5">
+                <h3 class="text-lg font-bold text-white" id="panel-title">Item Details</h3>
+                <button onclick="closeItemPanel()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div id="panel-content" class="p-5"></div>
+        </div>
+    </div>
+
+    <!-- CART SLIDE-UP PANEL -->
+    <div id="cart-panel" class="slide-panel fixed inset-0 z-50 flex items-end">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeCart()"></div>
+        <div class="relative w-full bg-eth-dark rounded-t-3xl overflow-hidden max-h-[85vh]">
+            <div class="sticky top-0 z-10 bg-eth-dark/95 backdrop-blur-sm px-5 pt-4 pb-2 flex items-center justify-between border-b border-white/5">
+                <h3 class="text-lg font-bold text-white">Your Order</h3>
+                <button onclick="closeCart()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div id="cart-content" class="p-5 overflow-y-auto max-h-[60vh]"></div>
+            <div class="p-5 border-t border-white/5 bg-eth-dark">
+                <div class="flex justify-between mb-2 text-sm">
+                    <span class="text-gray-400">Subtotal</span>
+                    <span class="text-white font-medium" id="cart-subtotal">0 ETB</span>
+                </div>
+                <div class="flex justify-between mb-4 text-sm">
+                    <span class="text-gray-400">Service (10%)</span>
+                    <span class="text-white font-medium" id="cart-service">0 ETB</span>
+                </div>
+                <div class="flex justify-between mb-6 text-lg font-bold">
+                    <span class="text-white">Total</span>
+                    <span class="text-eth-gold" id="cart-grand-total">0 ETB</span>
+                </div>
+                <button onclick="placeOrder()" class="w-full py-4 bg-gradient-to-r from-eth-gold to-amber-600 rounded-2xl text-white font-bold text-lg shadow-lg shadow-amber-500/20 btn-pulse active:scale-95 transition-transform">
+                    Place Order
+                </button>
+                <button onclick="clearCart()" class="w-full mt-3 py-3 text-sm text-gray-500 hover:text-red-400 transition-colors">
+                    Clear Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ORDER SUCCESS MODAL -->
+    <div id="success-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6 bg-black/90 backdrop-blur-xl">
+        <div class="text-center max-w-sm">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-2">Order Placed!</h3>
+            <p class="text-gray-400 mb-6">Your order has been sent to the kitchen. We'll bring it to your table shortly.</p>
+            <div class="bg-white/5 rounded-2xl p-4 mb-6 border border-white/10">
+                <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Order Number</p>
+                <p class="text-2xl font-mono font-bold text-eth-gold" id="order-number">#AK-001</p>
+            </div>
+            <button onclick="closeSuccess()" class="w-full py-3 bg-white/10 rounded-xl text-white font-medium hover:bg-white/20 transition-colors">
+                Continue Browsing
+            </button>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast fixed bottom-24 left-4 right-4 z-50">
+        <div class="bg-gradient-to-r from-eth-gold to-amber-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <span class="font-medium text-sm" id="toast-msg">Added to order</span>
+        </div>
+    </div>
+
+    <!-- RESTAURANT INFO BAR (Bottom) -->
+    <div class="fixed bottom-0 left-0 right-0 bg-eth-dark/90 backdrop-blur-xl border-t border-white/5 px-4 py-3 z-30 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 text-gray-400">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Open Now · 10AM - 11PM</span>
+        </div>
+        <div class="flex items-center gap-2 text-gray-400">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>+251 911 234 567</span>
+        </div>
+    </div>
+
+    <script>
+
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Contains: ${item.allergens.join(', ')}
+                        </p>
+                    </div>
+                ` : ''}
+
+                <div class="flex items-center gap-4">
+                    ${qty > 0 ? `
+                        <div class="flex items-center gap-3 bg-white/10 rounded-2xl px-4 py-3">
+                            <button onclick="updateQtyFromPanel(${item.id}, -1)" class="qty-btn text-lg">−</button>
+                            <span class="text-xl font-bold text-white w-8 text-center">${qty}</span>
+                            <button onclick="updateQtyFromPanel(${item.id}, 1)" class="qty-btn text-lg">+</button>
+                        </div>
+                    ` : `
+                        <button onclick="addToCartFromPanel(${item.id})" class="flex-1 py-4 bg-gradient-to-r from-eth-gold to-amber-600 rounded-2xl text-white font-bold shadow-lg shadow-amber-500/20 active:scale-95 transition-transform">
+                            Add to Order — ${item.price} ETB
+                        </button>
+                    `}
+                </div>
+
+                ${qty > 0 ? `
+                    <button onclick="closeItemPanel()" class="w-full mt-3 py-3 text-sm text-gray-500 hover:text-white transition-colors">
+                        ${currentLang === 'en' ? 'Continue Browsing' : 'መደበኛውን ይቀጥሉ'}
+                    </button>
+                ` : ''}
+            `;
+
+            document.getElementById('item-panel').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeItemPanel() {
+            document.getElementById('item-panel').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function addToCartFromPanel(itemId) {
+            addToCart(itemId);
+            openItemPanel(itemId);
+        }
+
+        function updateQtyFromPanel(itemId, delta) {
+            updateQty(itemId, delta);
+            if (cart[itemId]) {
+                openItemPanel(itemId);
+            } else {
+                closeItemPanel();
+            }
+        }
+
+        // ============================================
+        // CART PANEL
+        // ============================================
+        function openCart() {
+            renderCartPanel();
+            document.getElementById('cart-panel').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCart() {
+            document.getElementById('cart-panel').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function renderCartPanel() {
+            const container = document.getElementById('cart-content');
+            const entries = Object.entries(cart);
+
+            if (entries.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-gray-600"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                        </div>
+                        <p class="text-gray-500 text-sm">${currentLang === 'en' ? 'Your order is empty' : 'ትዕዛዝዎ ባዶ ነው'}</p>
+                    </div>
+                `;
+                document.getElementById('cart-subtotal').textContent = '0 ETB';
+                document.getElementById('cart-service').textContent = '0 ETB';
+                document.getElementById('cart-grand-total').textContent = '0 ETB';
+                return;
+            }
+
+            let subtotal = 0;
+
+            container.innerHTML = entries.map(([id, cartItem]) => {
+                const item = getItem(parseInt(id));
+                const itemTotal = item.price * cartItem.qty;
+                subtotal += itemTotal;
+                const name = currentLang === 'en' ? item.name : item.nameAm;
+
+                return `
+                    <div class="flex gap-3 mb-4 pb-4 border-b border-white/5">
+                        <img src="${item.image}" alt="${name}" class="w-16 h-16 rounded-xl object-cover">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-white text-sm truncate">${name}</h4>
+                            <p class="text-xs text-gray-500">${item.price} ETB each</p>
+                            <div class="flex items-center justify-between mt-2">
+                                <div class="flex items-center gap-2">
+                                    <button onclick="updateQty(${item.id}, -1)" class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all">−</button>
+                                    <span class="text-sm font-bold text-white w-6 text-center">${cartItem.qty}</span>
+                                    <button onclick="updateQty(${item.id}, 1)" class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all">+</button>
+                                </div>
+                                <span class="font-bold text-eth-gold text-sm">${itemTotal} ETB</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const service = Math.round(subtotal * 0.1);
+            const total = subtotal + service;
+
+            document.getElementById('cart-subtotal').textContent = `${subtotal} ETB`;
+            document.getElementById('cart-service').textContent = `${service} ETB`;
+            document.getElementById('cart-grand-total').textContent = `${total} ETB`;
+        }
+
+        function clearCart() {
+            cart = {};
+            updateCartUI();
+            renderCartPanel();
+            renderMenu();
+        }
+
+        // ============================================
+        // ORDER
+        // ============================================
+        function placeOrder() {
+            const entries = Object.entries(cart);
+            if (entries.length === 0) return;
+
+            const orderNum = `#AK-${String(orderCounter).padStart(3, '0')}`;
+            orderCounter++;
+
+            document.getElementById('order-number').textContent = orderNum;
+            document.getElementById('success-modal').classList.remove('hidden');
+            document.getElementById('success-modal').classList.add('flex');
+
+            cart = {};
+            updateCartUI();
+            renderMenu();
+            closeCart();
+        }
+
+        function closeSuccess() {
+            document.getElementById('success-modal').classList.add('hidden');
+            document.getElementById('success-modal').classList.remove('flex');
+        }
+
+        // ============================================
+        // TOAST
+        // ============================================
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // ============================================
+        // INIT
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMainCategories();
+            renderSubCategories();
+            renderMenu();
+
+            // Sticky nav shadow on scroll
+            let lastScroll = 0;
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('main-nav');
+                const currentScroll = window.scrollY;
+                if (currentScroll > 300) {
+                    nav.classList.add('nav-shadow');
+                } else {
+                    nav.classList.remove('nav-shadow');
+                }
+                lastScroll = currentScroll;
+            });
+        });
+    </script>
+</body>
+</html>
